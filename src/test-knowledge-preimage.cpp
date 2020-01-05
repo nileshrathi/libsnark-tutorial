@@ -67,6 +67,7 @@ int main()
 
   libff::bit_vector temp1= libff::int_list_to_bits({0x426bc2d8, 0x4dc86782, 0x81e8957a, 0x409ec148, 0xe6cffbe8, 0xafe6ba4f, 0x9c6f1978, 0xdd7af7e9,0x038cce42, 0xabd366b8, 0x3ede7e00, 0x9130de53, 0x72cdf73d, 0xee825114, 0x8cb48d1b, 0x9af68ad0}, 32);
   libff::bit_vector temp2= get_hash(temp1);
+  
 
 
   cout<<"temp2 start\n";
@@ -75,7 +76,8 @@ int main()
       cout<<temp2[i];
 
   }
-  cout<<"temp2 end\n";
+
+  cout<<"temp2 end"<<left_bv.size()<<"\n";
   
 
 
@@ -92,9 +94,22 @@ int main()
 
   left_bits.generate_r1cs_witness(left_bv);
   right_bits.generate_r1cs_witness(right_bv);
-  //cout<<"The hash value before is "<<hash_bits.bits.get_vals(pb);
+  cout<<"\nBefore :The pb variable array value after is "<<"\n";
+
+
+  for(int i=0;i<hash_packed.size();i++)
+  {
+    cout<<pb.val(hash_packed[i]);
+  }
+
   hasher.generate_r1cs_witness();
-  //cout<<"The hash value after is "<<hash_bits.bits.get_vals(pb);
+  cout<<"\nAfter :The pb variable array value after is "<<pb.val(hash_packed[3])<<"\n";
+
+   for(int i=0;i<hash_packed.size();i++)
+  {
+    cout<<pb.val(hash_packed[i]);
+  }
+
 
   libff::bit_vector temp= hash_bits.get_digest();
 
@@ -112,6 +127,16 @@ int main()
 
   packer.generate_r1cs_witness_from_bits();
 
+
+  cout<<"\nRRRRRR :The pb variable array value after is "<<"\n";
+  pb_variable<FieldT> x=hash_packed[0];
+  cout<<pb.val(x);
+  //  for(int i=0;i<x.size();i++)
+  // {
+  //   cout<<x[i];
+  // }
+
+
   const r1cs_constraint_system<FieldT> constraint_system = pb.get_constraint_system();
   const r1cs_ppzksnark_keypair<default_r1cs_ppzksnark_pp> keypair = r1cs_ppzksnark_generator<default_r1cs_ppzksnark_pp>(constraint_system);
   const r1cs_ppzksnark_proof<default_r1cs_ppzksnark_pp> proof = r1cs_ppzksnark_prover<default_r1cs_ppzksnark_pp>(keypair.pk, pb.primary_input(), pb.auxiliary_input());
@@ -120,6 +145,13 @@ int main()
   cout << "Number of R1CS constraints: " << constraint_system.num_constraints() << endl;
   cout << "Primary (public) input: " << pb.primary_input() << endl;
   cout << "Verification status: " << verified << endl;
+
+  
+
+
+ 
+
+
 
   const r1cs_ppzksnark_verification_key<default_r1cs_ppzksnark_pp> vk = keypair.vk;
 

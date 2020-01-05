@@ -1,2 +1,7 @@
+<<<<<<< HEAD
 *~
 build
+=======
+*.DS_Store
+build
+>>>>>>> dc00aaeb4f679bf96d334d2d4114a6f3a31c4e98

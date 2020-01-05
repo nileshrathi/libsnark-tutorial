@@ -61,6 +61,31 @@ target_include_directories(
 
 
 
+
+
+add_executable(
+  model2
+
+  model2.cpp
+)
+target_link_libraries(
+  model2
+
+  snark
+  gtest
+)
+target_include_directories(
+  model2
+
+  PUBLIC
+  ${DEPENDS_DIR}/libsnark
+  ${DEPENDS_DIR}/libsnark/depends/libfqfft
+  ${DEPENDS_DIR}/libsnark/depends/libff
+  ${DEPENDS_DIR}/libsnark/depends/gtest
+)
+
+
+
 add_executable(
   test-knowledge-preimage
 
@@ -98,4 +123,31 @@ target_include_directories(
   ${DEPENDS_DIR}/libsnark
   ${DEPENDS_DIR}/libsnark/depends/libfqfft
   ${DEPENDS_DIR}/libsnark/depends/libff
+)
+
+
+
+
+
+
+
+add_executable(
+  temp
+
+  temp.cpp
+)
+target_link_libraries(
+  temp
+
+  snark
+  gtest
+)
+target_include_directories(
+  temp
+
+  PUBLIC
+  ${DEPENDS_DIR}/libsnark
+  ${DEPENDS_DIR}/libsnark/depends/libfqfft
+  ${DEPENDS_DIR}/libsnark/depends/libff
+  ${DEPENDS_DIR}/libsnark/depends/gtest
 )

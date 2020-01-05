@@ -16,15 +16,15 @@ template<typename FieldT>
 class gadget_model: public gadget<FieldT> {
 private:
   pb_variable<FieldT> sym_1;
-  digest_variable<FieldT> hash_bits(pb, SHA256_digest_size, "hash_bits");
-  digest_variable<FieldT> left_bits(pb, SHA256_digest_size, "left_bits");
+//   digest_variable<FieldT> hash_bits(pb, SHA256_digest_size, "hash_bits");
+//   digest_variable<FieldT> left_bits(pb, SHA256_digest_size, "left_bits");
 //   pb_variable<FieldT> y;
 //   pb_variable<FieldT> sym_2;
 public:
   const pb_variable<FieldT> out;
   const pb_variable<FieldT> x;
   const pb_variable<FieldT> b;
-  const libff::bit_vector hx;
+  //const libff::bit_vector hx;
 
   gadget_model(protoboard<FieldT> &pb,
               const pb_variable<FieldT> &out,

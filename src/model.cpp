@@ -13,12 +13,12 @@ using namespace libsnark;
 using namespace std;
 
 
-
+typedef libff::Fr<default_r1cs_ppzksnark_pp> FieldT;
 
 vector<int> convert_to_binary(int x) {
   vector<int> ret;
   int count=0;
-  while(x) {
+  while(x!=0) {
     if (x&1)
       ret.push_back(1);
     else
@@ -89,20 +89,20 @@ int main()
 
   pb.val(out) = 7;
   pb.val(x) = 3;
-  pb.val(b)=9;
+  pb.val(b)=10;
 
 
 
 
 
-  vector<int> vx=convert_to_binary(7);
+  // vector<int> vx=convert_to_binary(pb.val(x.));
   
 
-  printf("Vector print starn\n");
-   for (auto i = vx.begin(); i != vx.end(); ++i) 
-        cout << *i << " ";
-  cout<<"\nvx size is "<<vx.size()<<"\n";
-  // libff::bit_vector hx=
+  // printf("Vector print starn\n");
+  //  for (auto i = vx.begin(); i != vx.end(); ++i) 
+  //       cout << *i << " ";
+  // cout<<"\nvx size is "<<vx.size()<<"\n";
+  // // libff::bit_vector hx=
 
   g.generate_r1cs_witness();
   
