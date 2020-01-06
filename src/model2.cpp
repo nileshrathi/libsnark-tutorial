@@ -12,7 +12,7 @@
 #include <cassert>
 #include <cstdarg>
 #include <cstdint>
-
+#include <chrono>
 #include <libff/common/utils.hpp>
 
 using namespace libsnark;
@@ -87,10 +87,10 @@ int main()
 
   //declaring the hash variable
   pb_variable_array<FieldT> hash_packed;
-  pb_variable<FieldT> ledger;
-  pb_variable<FieldT> block;
-  pb_variable<FieldT> rem_balance;
-  pb_variable<FieldT> l_minus_b;
+  pb_variable_array<FieldT> ledger;
+  pb_variable_array<FieldT> block;
+  pb_variable_array<FieldT> rem_balance;
+  pb_variable_array<FieldT> l_minus_b;
   // Allocate variables to protoboard
   // The strings (like "x") are only for debugging purposes
   
@@ -101,16 +101,19 @@ int main()
   sym_2.allocate(pb, "sym_2");
 
 
+
   //allocating hash variable
+  size_t num_of_peoples=3;
   hash_packed.allocate(pb,2,"hash_packed");
-  ledger.allocate(pb,"ledger");
-  block.allocate(pb,"block");
-  rem_balance.allocate(pb,"rem_balance");
-  l_minus_b.allocate(pb,"l_minus_b");
+  ledger.allocate(pb,num_of_peoples,"ledger");
+  block.allocate(pb,num_of_peoples,"block");
+  rem_balance.allocate(pb,num_of_peoples,"rem_balance");
+  l_minus_b.allocate(pb,num_of_peoples,"l_minus_b");
   // This sets up the protoboard variables
   // so that the first one (out) represents the public
   // input and the rest is private input
-  pb.set_input_sizes(9);
+  size_t no_of_public_inputs=(4*num_of_peoples)+6+2 ;
+  pb.set_input_sizes(no_of_public_inputs);
 
 
    //intermediate variable 
@@ -144,8 +147,16 @@ int main()
   //Add constraints
   packer.generate_r1cs_constraints(true);
   hasher.generate_r1cs_constraints();
-  pb.add_r1cs_constraint(r1cs_constraint<FieldT>(ledger-block, 1, l_minus_b));
-  pb.add_r1cs_constraint(r1cs_constraint<FieldT>(l_minus_b-rem_balance,1, 0));
+
+
+  for(size_t i=0;i<num_of_peoples;i++)
+  {
+    pb.add_r1cs_constraint(r1cs_constraint<FieldT>(ledger[i]-block[i], 1, l_minus_b[i]));
+    pb.add_r1cs_constraint(r1cs_constraint<FieldT>(l_minus_b[i]-rem_balance[i],1, 0));    
+  }
+
+
+
 
   
   // Add witness values
@@ -156,10 +167,23 @@ int main()
   pb.val(y) = 27;
   pb.val(sym_2) = 30;
 
-  pb.val(ledger)=10;
-  pb.val(block)=2;
-  pb.val(rem_balance)=8;
-  pb.val(l_minus_b)=pb.val(ledger)-pb.val(block);
+
+
+  pb.val(ledger[0])=10;
+  pb.val(block[0])=2;
+  pb.val(rem_balance[0])=8;
+  pb.val(l_minus_b[0])=pb.val(ledger[0])-pb.val(block[0]);
+
+
+  pb.val(ledger[1])=10;
+  pb.val(block[1])=2;
+  pb.val(rem_balance[1])=8;
+  pb.val(l_minus_b[1])=pb.val(ledger[1])-pb.val(block[1]);
+
+  pb.val(ledger[2])=11;
+  pb.val(block[2])=2;
+  pb.val(rem_balance[2])=9;
+  pb.val(l_minus_b[2])=pb.val(ledger[2])-pb.val(block[2]);
 
 
 //   const libff::bit_vector left_bv  = libff::int_list_to_bits({0x426bc2d8, 0x4dc86782, 0x81e8957a, 0x409ec148, 0xe6cffbe8, 0xafe6ba4f, 0x9c6f1978, 0xdd7af7e9}, 32);
@@ -179,16 +203,33 @@ int main()
 
   const r1cs_constraint_system<FieldT> constraint_system = pb.get_constraint_system();
 
+
+  
+  std::chrono::steady_clock::time_point begin_keygen = std::chrono::steady_clock::now();
   const r1cs_ppzksnark_keypair<default_r1cs_ppzksnark_pp> keypair = r1cs_ppzksnark_generator<default_r1cs_ppzksnark_pp>(constraint_system);
+  std::chrono::steady_clock::time_point end_keygen = std::chrono::steady_clock::now();
 
+
+  std::chrono::steady_clock::time_point begin_prfgen = std::chrono::steady_clock::now();
   const r1cs_ppzksnark_proof<default_r1cs_ppzksnark_pp> proof = r1cs_ppzksnark_prover<default_r1cs_ppzksnark_pp>(keypair.pk, pb.primary_input(), pb.auxiliary_input());
+  std::chrono::steady_clock::time_point end_prfgen = std::chrono::steady_clock::now();
 
+  std::chrono::steady_clock::time_point begin_ver = std::chrono::steady_clock::now();
   bool verified = r1cs_ppzksnark_verifier_strong_IC<default_r1cs_ppzksnark_pp>(keypair.vk, pb.primary_input(), proof);
-
+  std::chrono::steady_clock::time_point end_ver = std::chrono::steady_clock::now();
+  
+  
   cout << "Number of R1CS constraints: " << constraint_system.num_constraints() << endl;
   cout << "Primary (public) input: " << pb.primary_input() << endl;
   //cout << "Auxiliary (private) input: " << pb.auxiliary_input() << endl;
   cout << "Verification status: " << verified << endl;
+
+
+  std::cout << "Time key_gen = " << std::chrono::duration_cast<std::chrono::microseconds>(end_keygen - begin_keygen).count() << "[µs]" << std::endl;
+
+  std::cout << "Time prf_gen = " << std::chrono::duration_cast<std::chrono::microseconds>(end_prfgen - begin_prfgen).count() << "[µs]" << std::endl;
+
+  std::cout << "Time verification = " << std::chrono::duration_cast<std::chrono::microseconds>(end_ver - begin_ver).count() << "[µs]" << std::endl;
   //libff::serialize_bit_vector(cout,left_bv);
 
   const r1cs_ppzksnark_verification_key<default_r1cs_ppzksnark_pp> vk = keypair.vk;
