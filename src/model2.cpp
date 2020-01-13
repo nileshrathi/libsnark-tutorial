@@ -103,7 +103,7 @@ int main()
 
 
   //allocating hash variable
-  size_t num_of_peoples=3;
+  size_t num_of_peoples=3000;
   hash_packed.allocate(pb,2,"hash_packed");
   ledger.allocate(pb,num_of_peoples,"ledger");
   block.allocate(pb,num_of_peoples,"block");
@@ -156,10 +156,16 @@ int main()
   }
 
 
-
-
   
   // Add witness values
+
+   for(size_t i=0;i<num_of_peoples;i++)
+  {
+    pb.val(ledger[i])=10;
+    pb.val(block[i])=2;
+    pb.val(rem_balance[i])=8;
+    pb.val(l_minus_b[i])=pb.val(ledger[i])-pb.val(block[i]);
+  }
 
   pb.val(x) = 3;
   pb.val(out) = 35;
@@ -169,21 +175,21 @@ int main()
 
 
 
-  pb.val(ledger[0])=10;
-  pb.val(block[0])=2;
-  pb.val(rem_balance[0])=8;
-  pb.val(l_minus_b[0])=pb.val(ledger[0])-pb.val(block[0]);
+//   pb.val(ledger[0])=10;
+//   pb.val(block[0])=2;
+//   pb.val(rem_balance[0])=8;
+//   pb.val(l_minus_b[0])=pb.val(ledger[0])-pb.val(block[0]);
 
 
-  pb.val(ledger[1])=10;
-  pb.val(block[1])=2;
-  pb.val(rem_balance[1])=8;
-  pb.val(l_minus_b[1])=pb.val(ledger[1])-pb.val(block[1]);
+//   pb.val(ledger[1])=10;
+//   pb.val(block[1])=2;
+//   pb.val(rem_balance[1])=8;
+//   pb.val(l_minus_b[1])=pb.val(ledger[1])-pb.val(block[1]);
 
-  pb.val(ledger[2])=11;
-  pb.val(block[2])=2;
-  pb.val(rem_balance[2])=9;
-  pb.val(l_minus_b[2])=pb.val(ledger[2])-pb.val(block[2]);
+//   pb.val(ledger[2])=11;
+//   pb.val(block[2])=2;
+//   pb.val(rem_balance[2])=9;
+//   pb.val(l_minus_b[2])=pb.val(ledger[2])-pb.val(block[2]);
 
 
 //   const libff::bit_vector left_bv  = libff::int_list_to_bits({0x426bc2d8, 0x4dc86782, 0x81e8957a, 0x409ec148, 0xe6cffbe8, 0xafe6ba4f, 0x9c6f1978, 0xdd7af7e9}, 32);
@@ -220,7 +226,7 @@ int main()
   
   
   cout << "Number of R1CS constraints: " << constraint_system.num_constraints() << endl;
-  cout << "Primary (public) input: " << pb.primary_input() << endl;
+  //cout << "Primary (public) input: " << pb.primary_input() << endl;
   //cout << "Auxiliary (private) input: " << pb.auxiliary_input() << endl;
   cout << "Verification status: " << verified << endl;
 
