@@ -15,6 +15,14 @@
 #include <chrono>
 #include <libff/common/utils.hpp>
 
+
+
+
+#include <libff/common/default_types/ec_pp.hpp>
+#include <libsnark/common/default_types/r1cs_gg_ppzksnark_pp.hpp>
+#include <libsnark/relations/constraint_satisfaction_problems/r1cs/examples/r1cs_examples.hpp>
+#include <libsnark/zk_proof_systems/ppzksnark/r1cs_gg_ppzksnark/r1cs_gg_ppzksnark.hpp>
+
 using namespace libsnark;
 using namespace std;
 
@@ -62,15 +70,17 @@ libff::bit_vector get_hash(const libff::bit_vector &input1,const libff::bit_vect
     return output_variable.get_digest();
 }
 
+typedef libff::default_ec_pp ppT;
+
 
 int main()
 {
-  typedef libff::Fr<default_r1cs_ppzksnark_pp> FieldT;
+  typedef libff::Fr<ppT> FieldT;
 
   // Initialize the curve parameters
 
-  default_r1cs_ppzksnark_pp::init_public_params();
-  
+  //default_r1cs_ppzksnark_pp::init_public_params();
+  default_r1cs_gg_ppzksnark_pp::init_public_params();
   // Create protoboard
 
   protoboard<FieldT> pb;
@@ -213,16 +223,22 @@ int main()
 
   
   std::chrono::steady_clock::time_point begin_keygen = std::chrono::steady_clock::now();
-  const r1cs_ppzksnark_keypair<default_r1cs_ppzksnark_pp> keypair = r1cs_ppzksnark_generator<default_r1cs_ppzksnark_pp>(constraint_system);
+  //const r1cs_ppzksnark_keypair<default_r1cs_ppzksnark_pp> keypair = r1cs_ppzksnark_generator<default_r1cs_ppzksnark_pp>(constraint_system);
+  r1cs_gg_ppzksnark_keypair<ppT> keypair = r1cs_gg_ppzksnark_generator<ppT>(constraint_system);
   std::chrono::steady_clock::time_point end_keygen = std::chrono::steady_clock::now();
 
 
+  r1cs_gg_ppzksnark_processed_verification_key<ppT> pvk = r1cs_gg_ppzksnark_verifier_process_vk<ppT>(keypair.vk);
+
   std::chrono::steady_clock::time_point begin_prfgen = std::chrono::steady_clock::now();
-  const r1cs_ppzksnark_proof<default_r1cs_ppzksnark_pp> proof = r1cs_ppzksnark_prover<default_r1cs_ppzksnark_pp>(keypair.pk, pb.primary_input(), pb.auxiliary_input());
+  //const r1cs_ppzksnark_proof<default_r1cs_ppzksnark_pp> proof = r1cs_ppzksnark_prover<default_r1cs_ppzksnark_pp>(keypair.pk, pb.primary_input(), pb.auxiliary_input());
+  r1cs_gg_ppzksnark_proof<ppT> proof = r1cs_gg_ppzksnark_prover<ppT>(keypair.pk, pb.primary_input(), pb.auxiliary_input());
   std::chrono::steady_clock::time_point end_prfgen = std::chrono::steady_clock::now();
 
   std::chrono::steady_clock::time_point begin_ver = std::chrono::steady_clock::now();
-  bool verified = r1cs_ppzksnark_verifier_strong_IC<default_r1cs_ppzksnark_pp>(keypair.vk, pb.primary_input(), proof);
+  //bool verified = r1cs_ppzksnark_verifier_strong_IC<default_r1cs_ppzksnark_pp>(keypair.vk, pb.primary_input(), proof);
+  bool verified = r1cs_gg_ppzksnark_verifier_strong_IC<ppT>(keypair.vk, pb.primary_input(), proof);
+  
   std::chrono::steady_clock::time_point end_ver = std::chrono::steady_clock::now();
   
   
@@ -239,10 +255,12 @@ int main()
   std::cout << "Time verification = " << std::chrono::duration_cast<std::chrono::microseconds>(end_ver - begin_ver).count() << "[µs]" << std::endl;
   //libff::serialize_bit_vector(cout,left_bv);
 
-  const r1cs_ppzksnark_verification_key<default_r1cs_ppzksnark_pp> vk = keypair.vk;
+//   r1cs_gg_ppzksnark_processed_verification_key<ppT> vk = r1cs_gg_ppzksnark_verifier_process_vk<ppT>(keypair.vk);
 
-  print_vk_to_file<default_r1cs_ppzksnark_pp>(vk, "../build/vk_data");
-   print_proof_to_file<default_r1cs_ppzksnark_pp>(proof, "../build/proof_data");
+  proof.print_size();
 
+  ofstream outfile;
+  outfile.open("../build/vk_data");
+  outfile<<pvk;
   return 0;
 }

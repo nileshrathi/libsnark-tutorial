@@ -86,6 +86,29 @@ target_include_directories(
 
 
 
+
+add_executable(
+  model3
+
+  model3.cpp
+)
+target_link_libraries(
+  model3
+
+  snark
+  gtest
+)
+target_include_directories(
+  model3
+
+  PUBLIC
+  ${DEPENDS_DIR}/libsnark
+  ${DEPENDS_DIR}/libsnark/depends/libfqfft
+  ${DEPENDS_DIR}/libsnark/depends/libff
+  ${DEPENDS_DIR}/libsnark/depends/gtest
+)
+
+
 add_executable(
   test-knowledge-preimage
 
