@@ -248,7 +248,6 @@ int main () {
         pb.val(encoded_results[i])=encoded_results_vector[i];
     }
     
-    pb.val(encoded_results[2])=encoded_results_vector[6];
 
 
 
