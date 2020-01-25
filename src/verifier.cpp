@@ -94,6 +94,12 @@ vector< vector < size_t > > lagrange_coeff(size_t a[] , size_t w[], int len, int
 }
 
 
+int random_number(int min,int max)
+{
+    int randNum = rand()%(max-min + 1) + min;
+    return randNum;
+}
+
 
 
 int main () {
@@ -207,8 +213,40 @@ int main () {
 
     //setting the verifier variable values;
     int coeff_vector[] ={3,-8,6,6,-15,10,10,-24,15,15,-35,21,21,-48,28,28,-63,36,36,-80,45,45,-99,55,55,-120,66};
-    int ledger_vector[] ={13,15,17,13,15,17,13,15,17,13,15,17,13,15,17,13,15,17,13,15,17,13,15,17,13,15,17};
-    int blocks_vector[]={3,2,3,3,2,3,3,2,3,3,2,3,3,2,3,3,2,3,3,2,3,3,2,3,3,2,3};
+    //int ledger_vector[number_of_chains*number_of_nodes] ={13,15,17,13,15,17,13,15,17,13,15,17,13,15,17,13,15,17,13,15,17,13,15,17,13,15,17};
+    //int blocks_vector[]={3,2,3,3,2,3,3,2,3,3,2,3,3,2,3,3,2,3,3,2,3,3,2,3,3,2,3};
+
+
+
+    vector<int> base_ledger(number_of_chains);
+    vector<int> base_blocks(number_of_chains);
+    vector<int> ledger_vector;
+    vector<int> blocks_vector;
+
+    for(int i=0;i<number_of_chains;i++)
+    {
+        base_ledger[i]=random_number(0,10000);
+        base_blocks[i]=random_number(0,base_ledger[i]);
+    }
+
+
+    for(int i=0;i<number_of_nodes;i++)
+    {
+        for(int j=0;j<number_of_chains;j++)
+        {
+            ledger_vector.push_back(base_ledger[j]);
+            blocks_vector.push_back(base_blocks[j]);
+        }
+    }
+
+    cout<<"ledger_vector print start\n";
+    for(int i=0;i<number_of_nodes*number_of_chains;i++)
+    {
+        cout<<ledger_vector[i]<<" ";
+    }
+    cout<<"\n ledgervector print end";
+
+
 
     vector<int> encoded_ledger_ubu_vector(number_of_chains*number_of_nodes);
     vector<int> encoded_blocks_ubu_vector(number_of_chains*number_of_nodes);
