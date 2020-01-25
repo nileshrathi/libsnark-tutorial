@@ -108,11 +108,11 @@ int main () {
 
     // Define variables
 
-    pb_variable<field_T> x;
-    pb_variable<field_T> sym_1;
-    pb_variable<field_T> y;
-    pb_variable<field_T> sym_2;
-    pb_variable<field_T> out;
+    // pb_variable<field_T> x;
+    // pb_variable<field_T> sym_1;
+    // pb_variable<field_T> y;
+    // pb_variable<field_T> sym_2;
+    // pb_variable<field_T> out;
 
 
     //VAriables for verification
@@ -123,6 +123,7 @@ int main () {
     pb_variable_array<field_T> blocks;
     pb_variable_array<field_T> encoded_ledger_ubu;
     pb_variable_array<field_T> encoded_blocks_ubu;
+    pb_variable_array<field_T> encoded_results;
 
 
 
@@ -132,11 +133,11 @@ int main () {
     // Allocate variables to protoboard
     // The strings (like "x") are only for debugging purposes
     
-    out.allocate(pb, "out");
-    x.allocate(pb, "x");
-    sym_1.allocate(pb, "sym_1");
-    y.allocate(pb, "y");
-    sym_2.allocate(pb, "sym_2");
+    // out.allocate(pb, "out");
+    // x.allocate(pb, "x");
+    // sym_1.allocate(pb, "sym_1");
+    // y.allocate(pb, "y");
+    // sym_2.allocate(pb, "sym_2");
 
 
 
@@ -150,31 +151,41 @@ int main () {
     blocks.allocate(pb,number_of_chains*number_of_nodes,"Holding all coeff in single array");
     encoded_ledger_ubu.allocate(pb,number_of_chains*number_of_nodes,"Holding all coeff in single array");
     encoded_blocks_ubu.allocate(pb,number_of_chains*number_of_nodes,"Holding all coeff in single array");
-
+    encoded_results.allocate(pb,number_of_chains*number_of_nodes,"holding the coded verification results");
 
     // This sets up the protoboard variables
     // so that the first one (out) represents the public
     // input and the rest is private input
-    pb.set_input_sizes(1);
+    // pb.set_input_sizes(1);
 
-    // Add R1CS constraints to protoboard
+    // // Add R1CS constraints to protoboard
 
-    // x*x = sym_1
-    pb.add_r1cs_constraint(r1cs_constraint<field_T>(x, x, sym_1));
+    // // x*x = sym_1
+    // pb.add_r1cs_constraint(r1cs_constraint<field_T>(x, x, sym_1));
 
-    // sym_1 * x = y
-    pb.add_r1cs_constraint(r1cs_constraint<field_T>(sym_1, x, y));
+    // // sym_1 * x = y
+    // pb.add_r1cs_constraint(r1cs_constraint<field_T>(sym_1, x, y));
 
-    // y + x = sym_2
-    pb.add_r1cs_constraint(r1cs_constraint<field_T>(y + x, 1, sym_2));
+    // // y + x = sym_2
+    // pb.add_r1cs_constraint(r1cs_constraint<field_T>(y + x, 1, sym_2));
 
-    // sym_2 + 5 = ~out
-    pb.add_r1cs_constraint(r1cs_constraint<field_T>(sym_2 + 5, 1, out));
+    // // sym_2 + 5 = ~out
+    // pb.add_r1cs_constraint(r1cs_constraint<field_T>(sym_2 + 5, 1, out));
 
 
     for(int i=0;i<number_of_chains*number_of_nodes;i++)
     {
         pb.add_r1cs_constraint(r1cs_constraint<field_T>(coeff[i],ledger[i],encoded_ledger_ubu[i]));
+    }
+
+    for(int i=0;i<number_of_chains*number_of_nodes;i++)
+    {
+        pb.add_r1cs_constraint(r1cs_constraint<field_T>(coeff[i],blocks[i],encoded_blocks_ubu[i]));
+    }
+
+    for(int i=0;i<number_of_chains*number_of_nodes;i++)
+    {
+        pb.add_r1cs_constraint(r1cs_constraint<field_T>(encoded_ledger_ubu[i]-encoded_blocks_ubu[i],1,encoded_results[i]));
     }
 
 
@@ -187,17 +198,21 @@ int main () {
 
     // Add witness values
 
-    pb.val(x)=3;
-    pb.val(out) = 35;
-    pb.val(sym_1) = 9;
-    pb.val(y) = 27;
-    pb.val(sym_2) = 30;
+    // pb.val(x)=3;
+    // pb.val(out) = 35;
+    // pb.val(sym_1) = 9;
+    // pb.val(y) = 27;
+    // pb.val(sym_2) = 30;
 
 
     //setting the verifier variable values;
     int coeff_vector[] ={3,-8,6,6,-15,10,10,-24,15,15,-35,21,21,-48,28,28,-63,36,36,-80,45,45,-99,55,55,-120,66};
     int ledger_vector[] ={13,15,17,13,15,17,13,15,17,13,15,17,13,15,17,13,15,17,13,15,17,13,15,17,13,15,17};
+    int blocks_vector[]={3,2,3,3,2,3,3,2,3,3,2,3,3,2,3,3,2,3,3,2,3,3,2,3,3,2,3};
+
     vector<int> encoded_ledger_ubu_vector(number_of_chains*number_of_nodes);
+    vector<int> encoded_blocks_ubu_vector(number_of_chains*number_of_nodes);
+    vector<int> encoded_results_vector(number_of_chains*number_of_nodes);
 
     for(int i=0;i<27;i++)
     {
@@ -212,9 +227,28 @@ int main () {
 
     for(int i=0;i<number_of_chains*number_of_nodes;i++)
     {
+        pb.val(blocks[i])=blocks_vector[i];
+    }
+
+    for(int i=0;i<number_of_chains*number_of_nodes;i++)
+    {
         encoded_ledger_ubu_vector[i]=coeff_vector[i]*ledger_vector[i];
         pb.val(encoded_ledger_ubu[i])=encoded_ledger_ubu_vector[i];
     }
+
+    for(int i=0;i<number_of_chains*number_of_nodes;i++)
+    {
+        encoded_blocks_ubu_vector[i]=coeff_vector[i]*blocks_vector[i];
+        pb.val(encoded_blocks_ubu[i])=encoded_blocks_ubu_vector[i];
+    }
+
+    for(int i=0;i<number_of_chains*number_of_nodes;i++)
+    {
+        encoded_results_vector[i]=encoded_ledger_ubu_vector[i]-encoded_blocks_ubu_vector[i];
+        pb.val(encoded_results[i])=encoded_results_vector[i];
+    }
+    
+    pb.val(encoded_results[2])=encoded_results_vector[6];
 
 
 
