@@ -5,6 +5,7 @@
 #include <libsnark/zk_proof_systems/ppzksnark/r1cs_gg_ppzksnark/r1cs_gg_ppzksnark.hpp>
 
 #include <libsnark/gadgetlib1/pb_variable.hpp>
+#include <libsnark/gadgetlib1/gadgets/basic_gadgets.hpp>
 
 
 
@@ -15,6 +16,7 @@ using namespace libsnark;
 using namespace libff;
 #include<iostream>
 using namespace std;
+
 
 /**
  * The code below provides an example of all stages of running a R1CS GG-ppzkSNARK.
@@ -101,9 +103,17 @@ int random_number(int min,int max)
 }
 
 
+/* Global Variables Defining properties of the system */
+
+size_t number_of_chains=3;
+size_t number_of_nodes=9;
+size_t number_of_users_per_shard=9;
+
+
+#define ONE pb_variable<libff::Fr<ppT>>(0)
 
 int main () {
-    
+
     typedef libff::Fr<ppT> field_T ;
     default_r1cs_gg_ppzksnark_pp::init_public_params();
     //test_r1cs_gg_ppzksnark<default_r1cs_gg_ppzksnark_pp>(1000, 100);
@@ -130,6 +140,11 @@ int main () {
     pb_variable_array<field_T> encoded_ledger_ubu;
     pb_variable_array<field_T> encoded_blocks_ubu;
     pb_variable_array<field_T> encoded_results;
+    vector<pb_variable_array<field_T> > ledger_array;
+    pb_variable_array<field_T> coefficients;
+    pb_variable_array<field_T> ledger_array_encoded;
+    vector<pb_variable_array<field_T> > S;
+
 
 
 
@@ -148,8 +163,7 @@ int main () {
 
 
     // Allocating the verification variables
-    size_t number_of_chains=3;
-    size_t number_of_nodes=9;
+
     alpha.allocate(pb,number_of_nodes,"Nodes coefficients");
     w.allocate(pb,number_of_chains,"Evaluation points to recover original chains");
     coeff.allocate(pb,number_of_chains*number_of_nodes,"Holding all coeff in single array");
@@ -158,7 +172,32 @@ int main () {
     encoded_ledger_ubu.allocate(pb,number_of_chains*number_of_nodes,"Holding all coeff in single array");
     encoded_blocks_ubu.allocate(pb,number_of_chains*number_of_nodes,"Holding all coeff in single array");
     encoded_results.allocate(pb,number_of_chains*number_of_nodes,"holding the coded verification results");
+    
+    //resizing the ledger_aay to number of shards
+    ledger_array.resize(number_of_users_per_shard);
+    //allocating each ledger of ledger_array with num_of_users_per_shard elements
+    for(size_t i=0;i<number_of_users_per_shard;i++)
+    {
+        ledger_array[i].allocate(pb,number_of_chains,"num of users per shard");
+    }
 
+    //Allocating the coefficients to be equal to number of chains is system
+    coefficients.allocate(pb,number_of_chains,"Coefficits for chain i");
+
+    //allocating encoded ledger
+
+    ledger_array_encoded.allocate(pb,number_of_users_per_shard,"encoded ledger for node i");
+
+
+    S.resize(number_of_users_per_shard);
+    for(int i=0;i<number_of_users_per_shard;i++)
+    {
+        S[i].allocate(pb,number_of_chains-1,"S");
+
+    }
+
+    pb.set_input_sizes(150);
+    
     // This sets up the protoboard variables
     // so that the first one (out) represents the public
     // input and the rest is private input
@@ -179,24 +218,39 @@ int main () {
     // pb.add_r1cs_constraint(r1cs_constraint<field_T>(sym_2 + 5, 1, out));
 
 
-    for(int i=0;i<number_of_chains*number_of_nodes;i++)
+    for(size_t i=0;i<number_of_chains*number_of_nodes;i++)
     {
         pb.add_r1cs_constraint(r1cs_constraint<field_T>(coeff[i],ledger[i],encoded_ledger_ubu[i]));
     }
 
-    for(int i=0;i<number_of_chains*number_of_nodes;i++)
+    for(size_t i=0;i<number_of_chains*number_of_nodes;i++)
     {
         pb.add_r1cs_constraint(r1cs_constraint<field_T>(coeff[i],blocks[i],encoded_blocks_ubu[i]));
     }
 
-    for(int i=0;i<number_of_chains*number_of_nodes;i++)
+    for(size_t i=0;i<number_of_chains*number_of_nodes;i++)
     {
         pb.add_r1cs_constraint(r1cs_constraint<field_T>(encoded_ledger_ubu[i]-encoded_blocks_ubu[i],1,encoded_results[i]));
     }
 
+    // vector<inner_product_gadget<field_T> > compute_inner_product;
+    // compute_inner_product.resize(number_of_users_per_shard);
+
+    for(size_t j=0;j<number_of_users_per_shard;j++)
+    {
+        // compute_inner_product[i](pb,ledger_array[i],coefficients,dummy, "f");
+        // compute_inner_product[i].generate_r1cs_constraints();
+
+        for (size_t i = 0; i < ledger_array[j].size(); ++i)
+    {
+        pb.add_r1cs_constraint(
+            r1cs_constraint<field_T>(ledger_array[j][i], coefficients[i],
+                                    (i == ledger_array[j].size()-1 ? ledger_array_encoded[j] : S[j][i]) + (i == 0 ? 0 * ONE : -S[j][i-1])),
+            "gtv");
+    }
+    }
 
 
-    
 
 
 
@@ -285,6 +339,77 @@ int main () {
         encoded_results_vector[i]=encoded_ledger_ubu_vector[i]-encoded_blocks_ubu_vector[i];
         pb.val(encoded_results[i])=encoded_results_vector[i];
     }
+
+    //Filling aup the ledger_array
+
+    int dummy_ledger_array[number_of_chains][number_of_users_per_shard]
+    {
+  { 1, 2, 3, 4, 5, 6, 7, 8, 9 }, // row 0
+  { 10, 11, 12,13,14,15,16,17,18 }, // row 1
+  { 19,20,21,22,23,24,25,26,27 } // row 2
+};
+
+int ledger_array_temp[number_of_users_per_shard][number_of_chains];
+
+    for(int i=0;i<number_of_users_per_shard;i++)
+    {
+        for(int j=0;j<number_of_chains;j++)
+        {
+            ledger_array_temp[i][j]=dummy_ledger_array[j][i];
+            pb.val(ledger_array[i][j])=dummy_ledger_array[j][i];
+        }
+    }
+
+    //filling up the coefficients;
+    int coefficients_array[number_of_chains];
+    for(int i=0;i<number_of_chains;i++)
+    {
+        coefficients_array[i]=i+1;
+        pb.val(coefficients[i])=coefficients_array[i];
+    }
+
+    //filling up the encoded_ledger
+
+    for(int i=0;i<number_of_users_per_shard;i++)
+    {
+        int sum=0;
+        for(int j=0;j<number_of_chains;j++)
+        {
+            sum=sum+(coefficients_array[j]*ledger_array_temp[i][j]);
+
+        }
+        pb.val(ledger_array_encoded[i])=sum;
+
+    }
+
+
+
+
+
+    for(size_t j=0;j<number_of_users_per_shard;j++)
+    {
+        // compute_inner_product[i](pb,ledger_array[i],coefficients,dummy, "f");
+        // compute_inner_product[i].generate_r1cs_constraints();
+
+    int total=0;
+        for (size_t i = 0; i < 3; ++i)
+    {
+            total=total+ledger_array_temp[j][i]*coefficients_array[i];
+            if(i==2)
+            {
+                pb.val(ledger_array_encoded[j])=total;
+            }
+            else
+            {
+                pb.val(S[j][i])=total;
+            }
+               
+    }
+
+    }
+
+
+
     
 
 
