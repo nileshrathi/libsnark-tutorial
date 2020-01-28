@@ -24,19 +24,19 @@ typedef libff::default_ec_pp ppT;
 vector<vector<size_t>> nodes_coeff;
 
 
-size_t a[]={0,5,6,7,8,9,10,11,12,13};
-size_t w[]={0,1,2,3};
+// size_t a[]={0,5,6,7,8,9,10,11,12,13};
+// size_t w[]={0,1,2,3};
 
-vector< vector < size_t > > lagrange_coeff(size_t a[] , size_t w[], int len, int len_len)
+vector< vector < int > > lagrange_coeff(vector<int> a , vector<int> w, int len, int len_len)
 {
     
-    vector< vector <size_t> > nodes_coeff(len);
+    vector< vector <int> > nodes_coeff(len);
     //cout<<"here"<<len<<" "<<len_len;
     for(int i=1;i<len;i++)
     {
         for(int j=1;j<len_len;j++)
         {
-            size_t coeff=1;
+            int coeff=1;
             for(int k=1;k<len_len;k++)
             {
                 if(j!=k)
@@ -51,6 +51,7 @@ vector< vector < size_t > > lagrange_coeff(size_t a[] , size_t w[], int len, int
 }
 
 
+
 int random_number(int min,int max)
 {
     int randNum = rand()%(max-min + 1) + min;
@@ -60,9 +61,10 @@ int random_number(int min,int max)
 
 /* Global Variables Defining properties of the system */
 
-size_t number_of_chains=3;
-size_t number_of_nodes=9;
-size_t number_of_users_per_shard=9;
+size_t number_of_chains=40;
+size_t number_of_nodes=400;
+size_t number_of_users_per_shard=1000;
+size_t node_number=1;
 
 
 #define ONE pb_variable<libff::Fr<ppT>>(0)
@@ -83,6 +85,45 @@ int main () {
     pb_variable_array<field_T> coefficients;
     pb_variable_array<field_T> ledger_array_encoded;
     vector<pb_variable_array<field_T> > S;
+
+
+    //calculation of nodes coefficients
+
+     vector<int> alpha;
+    vector<int> beta;
+    alpha.resize(number_of_nodes+1);
+    beta.resize(number_of_chains+1);
+
+    for(int i=0;i<beta.size();i++)
+    {
+        beta[i]=i;
+    }
+    
+    for(int i=0;i<alpha.size();i++)
+    {
+        if(i==0)
+        {
+            alpha[i]=0;
+        }
+        else
+        {
+            alpha[i]=number_of_chains+1+i;
+        }
+        
+    }
+
+    // for(int i=0;i<beta.size();i++)
+    // {
+    //     cout<<beta[i]<<" ";
+    // }
+    // cout<<"\n end \n";
+
+    // for(int i=0;i<alpha.size();i++)
+    // {
+    //     cout<<alpha[i]<<" ";
+    // }
+    // cout<<"\n end \n";
+    vector<vector <int> > coeff_vector = lagrange_coeff(alpha,beta,alpha.size(),beta.size());
 
 
 
@@ -114,7 +155,8 @@ int main () {
 
     }
 
-    pb.set_input_sizes(1);
+    pb.set_input_sizes(pb.num_variables());
+    cout<<"number of variables are "<<pb.num_variables()<<"\n";
     
     
     // compute_inner_product.resize(number_of_users_per_shard);
@@ -142,14 +184,36 @@ int main () {
     
     //Filling aup the ledger_array
 
-    int dummy_ledger_array[number_of_chains][number_of_users_per_shard]
-    {
-  { 1, 2, 3, 4, 5, 6, 7, 8, 9 }, // row 0
-  { 10, 11, 12,13,14,15,16,17,18 }, // row 1
-  { 19,20,21,22,23,24,25,26,27 } // row 2
-};
+// int dummy_ledger_array[number_of_chains][number_of_users_per_shard]
+// {
+//   { 1, 2, 3, 4, 5, 6, 7, 8, 9 }, // row 0
+//   { 10, 11, 12,13,14,15,16,17,18 }, // row 1
+//   { 19,20,21,22,23,24,25,26,27 } // row 2
+// };
 
-int ledger_array_temp[number_of_users_per_shard][number_of_chains];
+vector<vector<int> >dummy_ledger_array;
+dummy_ledger_array.resize(number_of_chains);
+for(int i=0;i<number_of_chains;i++)
+{
+    dummy_ledger_array[i].resize(number_of_users_per_shard);
+}
+
+for(int i=0;i<number_of_chains;i++)
+{
+    for(int j=0;j<number_of_users_per_shard;j++)
+    {
+        dummy_ledger_array[i][j]=random_number(10,500);
+    }
+}
+
+
+vector<vector<int> > ledger_array_temp;
+ledger_array_temp.resize(number_of_users_per_shard);
+for(int i=0;i<number_of_users_per_shard;i++)
+{
+    ledger_array_temp[i].resize(number_of_chains);
+}
+
 
     for(int i=0;i<number_of_users_per_shard;i++)
     {
@@ -160,13 +224,16 @@ int ledger_array_temp[number_of_users_per_shard][number_of_chains];
         }
     }
 
-    //filling up the coefficients;
-    int coefficients_array[number_of_chains];
+
     for(int i=0;i<number_of_chains;i++)
     {
-        coefficients_array[i]=i+1;
-        pb.val(coefficients[i])=coefficients_array[i];
+        // coefficients_array[i]=coeff_vector[1][i];
+         pb.val(coefficients[i])=coeff_vector[node_number][i];
     }
+
+
+
+
 
     //filling up the encoded_ledger
 
@@ -175,7 +242,7 @@ int ledger_array_temp[number_of_users_per_shard][number_of_chains];
         int sum=0;
         for(int j=0;j<number_of_chains;j++)
         {
-            sum=sum+(coefficients_array[j]*ledger_array_temp[i][j]);
+            sum=sum+(coeff_vector[node_number][j]*ledger_array_temp[i][j]);
 
         }
         pb.val(ledger_array_encoded[i])=sum;
@@ -193,10 +260,10 @@ int ledger_array_temp[number_of_users_per_shard][number_of_chains];
         // compute_inner_product[i].generate_r1cs_constraints();
 
     int total=0;
-        for (size_t i = 0; i < 3; ++i)
+        for (size_t i = 0; i < number_of_chains; ++i)
     {
-            total=total+ledger_array_temp[j][i]*coefficients_array[i];
-            if(i==2)
+            total=total+ledger_array_temp[j][i]*coeff_vector[node_number][i];
+            if(i==number_of_chains-1)
             {
                 pb.val(ledger_array_encoded[j])=total;
             }
@@ -244,8 +311,8 @@ int ledger_array_temp[number_of_users_per_shard][number_of_chains];
 
 
   cout << "Number of R1CS constraints: " << constraint_system.num_constraints() << endl;
-  cout << "Primary (public) input: " << pb.primary_input() << endl;
-  cout << "Auxiliary (private) input: " << pb.auxiliary_input() << endl;
+//   cout << "Primary (public) input: " << pb.primary_input() << endl;
+//   cout << "Auxiliary (private) input: " << pb.auxiliary_input() << endl;
   cout << "Verification status: " << ans << endl;
 
 

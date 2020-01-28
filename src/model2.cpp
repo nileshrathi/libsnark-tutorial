@@ -103,7 +103,7 @@ int main()
 
 
   //allocating hash variable
-  size_t num_of_peoples=3;
+  size_t num_of_peoples=300000;
   hash_packed.allocate(pb,2,"hash_packed");
   ledger.allocate(pb,num_of_peoples,"ledger");
   block.allocate(pb,num_of_peoples,"block");
