@@ -18,51 +18,6 @@ using namespace libff;
 using namespace std;
 
 
-/**
- * The code below provides an example of all stages of running a R1CS GG-ppzkSNARK.
- *
- * Of course, in a real-life scenario, we would have three distinct entities,
- * mangled into one in the demonstration below. The three entities are as follows.
- * (1) The "generator", which runs the ppzkSNARK generator on input a given
- *     constraint system CS to create a proving and a verification key for CS.
- * (2) The "prover", which runs the ppzkSNARK prover on input the proving key,
- *     a primary input for CS, and an auxiliary input for CS.
- * (3) The "verifier", which runs the ppzkSNARK verifier on input the verification key,
- *     a primary input for CS, and a proof.
- */
-// template<typename ppT>
-// bool run_r1cs_gg_ppzksnark(const r1cs_example<libff::Fr<ppT> > &example)
-// {
-//     libff::print_header("R1CS GG-ppzkSNARK Generator");
-//     r1cs_gg_ppzksnark_keypair<ppT> keypair = r1cs_gg_ppzksnark_generator<ppT>(example.constraint_system);
-//     printf("\n"); libff::print_indent(); libff::print_mem("after generator");
-
-//     libff::print_header("Preprocess verification key");
-//     r1cs_gg_ppzksnark_processed_verification_key<ppT> pvk = r1cs_gg_ppzksnark_verifier_process_vk<ppT>(keypair.vk);
-
-//     libff::print_header("R1CS GG-ppzkSNARK Prover");
-//     r1cs_gg_ppzksnark_proof<ppT> proof = r1cs_gg_ppzksnark_prover<ppT>(keypair.pk, example.primary_input, example.auxiliary_input);
-//     printf("\n"); libff::print_indent(); libff::print_mem("after prover");
-
-//     libff::print_header("R1CS GG-ppzkSNARK Verifier");
-//     const bool ans = r1cs_gg_ppzksnark_verifier_strong_IC<ppT>(keypair.vk, example.primary_input, proof);
-//     printf("\n"); libff::print_indent(); libff::print_mem("after verifier");
-//     printf("* The verification result is: %s\n", (ans ? "PASS" : "FAIL"));
-
-//     libff::print_header("R1CS GG-ppzkSNARK Online Verifier");
-//     const bool ans2 = r1cs_gg_ppzksnark_online_verifier_strong_IC<ppT>(pvk, example.primary_input, proof);
-//     assert(ans == ans2);
-
-//     return ans;
-// }
-
-// template<typename ppT>
-// void test_r1cs_gg_ppzksnark(size_t num_constraints, size_t input_size)
-// {
-//     r1cs_example<libff::Fr<ppT> > example = generate_r1cs_example_with_binary_input<libff::Fr<ppT> >(num_constraints, input_size);
-//     const bool bit = run_r1cs_gg_ppzksnark<ppT>(example);
-//     assert(bit);
-// }
 typedef libff::default_ec_pp ppT;
 
 
@@ -123,23 +78,7 @@ int main () {
     protoboard<field_T> pb;
 
     // Define variables
-
-    // pb_variable<field_T> x;
-    // pb_variable<field_T> sym_1;
-    // pb_variable<field_T> y;
-    // pb_variable<field_T> sym_2;
-    // pb_variable<field_T> out;
-
-
-    //VAriables for verification
-    pb_variable_array<field_T> alpha;
-    pb_variable_array<field_T> w;
-    pb_variable_array<field_T> coeff;
-    pb_variable_array<field_T> ledger;
-    pb_variable_array<field_T> blocks;
-    pb_variable_array<field_T> encoded_ledger_ubu;
-    pb_variable_array<field_T> encoded_blocks_ubu;
-    pb_variable_array<field_T> encoded_results;
+    
     vector<pb_variable_array<field_T> > ledger_array;
     pb_variable_array<field_T> coefficients;
     pb_variable_array<field_T> ledger_array_encoded;
@@ -151,27 +90,6 @@ int main () {
 
 
 
-    // Allocate variables to protoboard
-    // The strings (like "x") are only for debugging purposes
-    
-    // out.allocate(pb, "out");
-    // x.allocate(pb, "x");
-    // sym_1.allocate(pb, "sym_1");
-    // y.allocate(pb, "y");
-    // sym_2.allocate(pb, "sym_2");
-
-
-
-    // Allocating the verification variables
-
-    alpha.allocate(pb,number_of_nodes,"Nodes coefficients");
-    w.allocate(pb,number_of_chains,"Evaluation points to recover original chains");
-    coeff.allocate(pb,number_of_chains*number_of_nodes,"Holding all coeff in single array");
-    ledger.allocate(pb,number_of_chains*number_of_nodes,"Holding all coeff in single array");
-    blocks.allocate(pb,number_of_chains*number_of_nodes,"Holding all coeff in single array");
-    encoded_ledger_ubu.allocate(pb,number_of_chains*number_of_nodes,"Holding all coeff in single array");
-    encoded_blocks_ubu.allocate(pb,number_of_chains*number_of_nodes,"Holding all coeff in single array");
-    encoded_results.allocate(pb,number_of_chains*number_of_nodes,"holding the coded verification results");
     
     //resizing the ledger_aay to number of shards
     ledger_array.resize(number_of_users_per_shard);
@@ -196,44 +114,9 @@ int main () {
 
     }
 
-    pb.set_input_sizes(150);
+    pb.set_input_sizes(1);
     
-    // This sets up the protoboard variables
-    // so that the first one (out) represents the public
-    // input and the rest is private input
-    // pb.set_input_sizes(1);
-
-    // // Add R1CS constraints to protoboard
-
-    // // x*x = sym_1
-    // pb.add_r1cs_constraint(r1cs_constraint<field_T>(x, x, sym_1));
-
-    // // sym_1 * x = y
-    // pb.add_r1cs_constraint(r1cs_constraint<field_T>(sym_1, x, y));
-
-    // // y + x = sym_2
-    // pb.add_r1cs_constraint(r1cs_constraint<field_T>(y + x, 1, sym_2));
-
-    // // sym_2 + 5 = ~out
-    // pb.add_r1cs_constraint(r1cs_constraint<field_T>(sym_2 + 5, 1, out));
-
-
-    for(size_t i=0;i<number_of_chains*number_of_nodes;i++)
-    {
-        pb.add_r1cs_constraint(r1cs_constraint<field_T>(coeff[i],ledger[i],encoded_ledger_ubu[i]));
-    }
-
-    for(size_t i=0;i<number_of_chains*number_of_nodes;i++)
-    {
-        pb.add_r1cs_constraint(r1cs_constraint<field_T>(coeff[i],blocks[i],encoded_blocks_ubu[i]));
-    }
-
-    for(size_t i=0;i<number_of_chains*number_of_nodes;i++)
-    {
-        pb.add_r1cs_constraint(r1cs_constraint<field_T>(encoded_ledger_ubu[i]-encoded_blocks_ubu[i],1,encoded_results[i]));
-    }
-
-    // vector<inner_product_gadget<field_T> > compute_inner_product;
+    
     // compute_inner_product.resize(number_of_users_per_shard);
 
     for(size_t j=0;j<number_of_users_per_shard;j++)
@@ -256,90 +139,7 @@ int main () {
 
 
 
-    // Add witness values
-
-    // pb.val(x)=3;
-    // pb.val(out) = 35;
-    // pb.val(sym_1) = 9;
-    // pb.val(y) = 27;
-    // pb.val(sym_2) = 30;
-
-
-    //setting the verifier variable values;
-    int coeff_vector[] ={3,-8,6,6,-15,10,10,-24,15,15,-35,21,21,-48,28,28,-63,36,36,-80,45,45,-99,55,55,-120,66};
-    //int ledger_vector[number_of_chains*number_of_nodes] ={13,15,17,13,15,17,13,15,17,13,15,17,13,15,17,13,15,17,13,15,17,13,15,17,13,15,17};
-    //int blocks_vector[]={3,2,3,3,2,3,3,2,3,3,2,3,3,2,3,3,2,3,3,2,3,3,2,3,3,2,3};
-
-
-
-    vector<int> base_ledger(number_of_chains);
-    vector<int> base_blocks(number_of_chains);
-    vector<int> ledger_vector;
-    vector<int> blocks_vector;
-
-    for(int i=0;i<number_of_chains;i++)
-    {
-        base_ledger[i]=random_number(0,10000);
-        base_blocks[i]=random_number(0,base_ledger[i]);
-    }
-
-
-    for(int i=0;i<number_of_nodes;i++)
-    {
-        for(int j=0;j<number_of_chains;j++)
-        {
-            ledger_vector.push_back(base_ledger[j]);
-            blocks_vector.push_back(base_blocks[j]);
-        }
-    }
-
-    cout<<"ledger_vector print start\n";
-    for(int i=0;i<number_of_nodes*number_of_chains;i++)
-    {
-        cout<<ledger_vector[i]<<" ";
-    }
-    cout<<"\n ledgervector print end";
-
-
-
-    vector<int> encoded_ledger_ubu_vector(number_of_chains*number_of_nodes);
-    vector<int> encoded_blocks_ubu_vector(number_of_chains*number_of_nodes);
-    vector<int> encoded_results_vector(number_of_chains*number_of_nodes);
-
-    for(int i=0;i<27;i++)
-    {
-        pb.val(coeff[i])=coeff_vector[i];
     
-    }
-
-    for(int i=0;i<27;i++)
-    {
-        pb.val(ledger[i])=ledger_vector[i];
-    }
-
-    for(int i=0;i<number_of_chains*number_of_nodes;i++)
-    {
-        pb.val(blocks[i])=blocks_vector[i];
-    }
-
-    for(int i=0;i<number_of_chains*number_of_nodes;i++)
-    {
-        encoded_ledger_ubu_vector[i]=coeff_vector[i]*ledger_vector[i];
-        pb.val(encoded_ledger_ubu[i])=encoded_ledger_ubu_vector[i];
-    }
-
-    for(int i=0;i<number_of_chains*number_of_nodes;i++)
-    {
-        encoded_blocks_ubu_vector[i]=coeff_vector[i]*blocks_vector[i];
-        pb.val(encoded_blocks_ubu[i])=encoded_blocks_ubu_vector[i];
-    }
-
-    for(int i=0;i<number_of_chains*number_of_nodes;i++)
-    {
-        encoded_results_vector[i]=encoded_ledger_ubu_vector[i]-encoded_blocks_ubu_vector[i];
-        pb.val(encoded_results[i])=encoded_results_vector[i];
-    }
-
     //Filling aup the ledger_array
 
     int dummy_ledger_array[number_of_chains][number_of_users_per_shard]
@@ -382,6 +182,7 @@ int ledger_array_temp[number_of_users_per_shard][number_of_chains];
 
     }
 
+    
 
 
 
@@ -408,7 +209,7 @@ int ledger_array_temp[number_of_users_per_shard][number_of_chains];
 
     }
 
-
+    //pb.val(ledger_array_encoded[1])=45;
 
     
 
