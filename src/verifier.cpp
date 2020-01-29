@@ -6,7 +6,7 @@
 
 #include <libsnark/gadgetlib1/pb_variable.hpp>
 #include <libsnark/gadgetlib1/gadgets/basic_gadgets.hpp>
-
+#include <bits/stdc++.h> 
 
 
 
@@ -61,9 +61,9 @@ int random_number(int min,int max)
 
 /* Global Variables Defining properties of the system */
 
-size_t number_of_chains=40;
-size_t number_of_nodes=400;
-size_t number_of_users_per_shard=1000;
+size_t number_of_chains=3;
+size_t number_of_nodes=40;
+size_t number_of_users_per_shard=30;
 size_t node_number=1;
 
 
@@ -296,16 +296,62 @@ for(int i=0;i<number_of_users_per_shard;i++)
     r1cs_gg_ppzksnark_proof<ppT> proof = r1cs_gg_ppzksnark_prover<ppT>(keypair.pk, pb.primary_input(), pb.auxiliary_input());
     printf("\n"); libff::print_indent(); libff::print_mem("after prover");
 
+    stringstream proof_stream;
+    proof_stream<<proof;
+    ofstream fileOut;
+    fileOut.open("verifier_proof");
+    fileOut<<proof_stream.rdbuf();
+    fileOut.close();
+
+
+    ifstream fileIn("verifier_proof");
+    stringstream proof_from_file;
+    if (fileIn) {
+       proof_from_file << fileIn.rdbuf();
+       fileIn.close();
+    }
+    r1cs_gg_ppzksnark_proof<ppT> proof2;
+    proof_from_file>>proof2;
+
+
+
+
+    stringstream verifierKey;
+    verifierKey << keypair.vk;
+
+    ofstream fileOut1;
+    fileOut1.open("verifierKey");
+
+    fileOut1 << verifierKey.rdbuf();
+    fileOut1.close();
+   
+    cout << "verifierKey before" << endl;
+   // cout << keypair.vk << endl;
+
+    ifstream fileIn1("verifierKey");
+    stringstream verifierKeyFromFile;
+    if (fileIn1) {
+       verifierKeyFromFile << fileIn1.rdbuf();
+       fileIn1.close();
+    }
+   
+    verifierKeyFromFile >> keypair.vk;
+   
+    cout << "verifierKey after" << endl;
+    //cout << keypair.vk << endl;
+
+
+    
 
 
 
     libff::print_header("R1CS GG-ppzkSNARK Verifier");
-    const bool ans = r1cs_gg_ppzksnark_verifier_strong_IC<ppT>(keypair.vk, pb.primary_input(), proof);
+    const bool ans = r1cs_gg_ppzksnark_verifier_strong_IC<ppT>(keypair.vk, pb.primary_input(), proof2);
     printf("\n"); libff::print_indent(); libff::print_mem("after verifier");
     printf("* The verification result is: %s\n", (ans ? "PASS" : "FAIL"));
 
     libff::print_header("R1CS GG-ppzkSNARK Online Verifier");
-    const bool ans2 = r1cs_gg_ppzksnark_online_verifier_strong_IC<ppT>(pvk, pb.primary_input(), proof);
+    const bool ans2 = r1cs_gg_ppzksnark_online_verifier_strong_IC<ppT>(pvk, pb.primary_input(), proof2);
     assert(ans == ans2);
 
 
