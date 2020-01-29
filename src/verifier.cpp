@@ -62,8 +62,8 @@ int random_number(int min,int max)
 /* Global Variables Defining properties of the system */
 
 size_t number_of_chains=3;
-size_t number_of_nodes=40;
-size_t number_of_users_per_shard=30;
+size_t number_of_nodes=9;
+size_t number_of_users_per_shard=9000;
 size_t node_number=1;
 
 
@@ -86,10 +86,17 @@ int main () {
     pb_variable_array<field_T> ledger_array_encoded;
     vector<pb_variable_array<field_T> > S;
 
+    vector<pb_variable_array<field_T> > blocks_array;
+    pb_variable_array<field_T> blocks_array_encoded;
+    vector<pb_variable_array<field_T> > SB;
+
+    pb_variable_array<field_T> result_array_encoded;
+
+
 
     //calculation of nodes coefficients
 
-     vector<int> alpha;
+    vector<int> alpha;
     vector<int> beta;
     alpha.resize(number_of_nodes+1);
     beta.resize(number_of_chains+1);
@@ -137,15 +144,28 @@ int main () {
     //allocating each ledger of ledger_array with num_of_users_per_shard elements
     for(size_t i=0;i<number_of_users_per_shard;i++)
     {
-        ledger_array[i].allocate(pb,number_of_chains,"num of users per shard");
+        ledger_array[i].allocate(pb,number_of_chains,"every element contain and individual ledger");
     }
 
+    //resizing the blocks_array to number of shards
+    blocks_array.resize(number_of_users_per_shard);
+    //allocating each block of blocks_array with num_of_users_per_shard elements
+    for(size_t i=0;i<number_of_users_per_shard;i++)
+    {
+        blocks_array[i].allocate(pb,number_of_chains,"every element contain and individual block");
+    }
+
+
+
     //Allocating the coefficients to be equal to number of chains is system
-    coefficients.allocate(pb,number_of_chains,"Coefficits for chain i");
+    coefficients.allocate(pb,number_of_chains,"Coefficients for chain i");
 
     //allocating encoded ledger
-
     ledger_array_encoded.allocate(pb,number_of_users_per_shard,"encoded ledger for node i");
+
+
+    //allocating encoded block
+    blocks_array_encoded.allocate(pb,number_of_users_per_shard,"encoded ledger for node i");
 
 
     S.resize(number_of_users_per_shard);
@@ -155,10 +175,21 @@ int main () {
 
     }
 
+    SB.resize(number_of_users_per_shard);
+    for(int i=0;i<number_of_users_per_shard;i++)
+    {
+        SB[i].allocate(pb,number_of_chains-1,"SB");
+
+    }
+
+    result_array_encoded.allocate(pb,number_of_users_per_shard,"encoded_results");
+
+
     pb.set_input_sizes(pb.num_variables());
     cout<<"number of variables are "<<pb.num_variables()<<"\n";
     
-    
+
+    //GENERATING R1CS CONSTRAINTS
     // compute_inner_product.resize(number_of_users_per_shard);
 
     for(size_t j=0;j<number_of_users_per_shard;j++)
@@ -173,6 +204,28 @@ int main () {
                                     (i == ledger_array[j].size()-1 ? ledger_array_encoded[j] : S[j][i]) + (i == 0 ? 0 * ONE : -S[j][i-1])),
             "gtv");
     }
+    }
+
+
+        for(size_t j=0;j<number_of_users_per_shard;j++)
+    {
+        // compute_inner_product[i](pb,ledger_array[i],coefficients,dummy, "f");
+        // compute_inner_product[i].generate_r1cs_constraints();
+
+        for (size_t i = 0; i < blocks_array[j].size(); ++i)
+    {
+        pb.add_r1cs_constraint(
+            r1cs_constraint<field_T>(blocks_array[j][i], coefficients[i],
+                                    (i == blocks_array[j].size()-1 ? blocks_array_encoded[j] : SB[j][i]) + (i == 0 ? 0 * ONE : -SB[j][i-1])),
+            "gtv");
+    }
+    }
+
+
+    for(size_t i=0;i<number_of_users_per_shard;i++)
+    {
+        pb.add_r1cs_constraint(r1cs_constraint<field_T>(ledger_array_encoded[i]-blocks_array_encoded[i],1,result_array_encoded[i]));
+
     }
 
 
@@ -191,6 +244,8 @@ int main () {
 //   { 19,20,21,22,23,24,25,26,27 } // row 2
 // };
 
+
+//Create a dummy ledger for testing purpose
 vector<vector<int> >dummy_ledger_array;
 dummy_ledger_array.resize(number_of_chains);
 for(int i=0;i<number_of_chains;i++)
@@ -206,7 +261,32 @@ for(int i=0;i<number_of_chains;i++)
     }
 }
 
+//Create a dummy block for testing purpose
+vector<vector<int> >dummy_blocks_array;
+dummy_blocks_array.resize(number_of_chains);
+for(int i=0;i<number_of_chains;i++)
+{
+    dummy_blocks_array[i].resize(number_of_users_per_shard);
+}
 
+for(int i=0;i<number_of_chains;i++)
+{
+    for(int j=0;j<number_of_users_per_shard;j++)
+    {
+        dummy_blocks_array[i][j]=random_number(10,500);
+    }
+}
+
+
+//Creating encoded_ledger array and encoded_block array so as to add pb.va(encoded_result)
+
+vector<int> ledger_array_encoded_temp;
+vector<int> blocks_array_encoded_temp;
+ledger_array_encoded_temp.resize(number_of_users_per_shard);
+blocks_array_encoded_temp.resize(number_of_users_per_shard);
+
+
+//temporary replica of ledger_array so as to compute S, since I dont know how to use pb.val(ledger_array) directly.
 vector<vector<int> > ledger_array_temp;
 ledger_array_temp.resize(number_of_users_per_shard);
 for(int i=0;i<number_of_users_per_shard;i++)
@@ -215,12 +295,33 @@ for(int i=0;i<number_of_users_per_shard;i++)
 }
 
 
+//temporary replica of blocks_array so as to compute S, since I dont know how to use pb.val(blocks_array) directly.
+vector<vector<int> > blocks_array_temp;
+blocks_array_temp.resize(number_of_users_per_shard);
+for(int i=0;i<number_of_users_per_shard;i++)
+{
+    blocks_array_temp[i].resize(number_of_chains);
+}
+
+
+
+//setting the values of pb.val(ledger array)
     for(int i=0;i<number_of_users_per_shard;i++)
     {
         for(int j=0;j<number_of_chains;j++)
         {
             ledger_array_temp[i][j]=dummy_ledger_array[j][i];
             pb.val(ledger_array[i][j])=dummy_ledger_array[j][i];
+        }
+    }
+
+//setting the values of pb.val(blocks array)
+    for(int i=0;i<number_of_users_per_shard;i++)
+    {
+        for(int j=0;j<number_of_chains;j++)
+        {
+            blocks_array_temp[i][j]=dummy_blocks_array[j][i];
+            pb.val(blocks_array[i][j])=dummy_blocks_array[j][i];
         }
     }
 
@@ -236,6 +337,7 @@ for(int i=0;i<number_of_users_per_shard;i++)
 
 
     //filling up the encoded_ledger
+    
 
     for(int i=0;i<number_of_users_per_shard;i++)
     {
@@ -245,12 +347,34 @@ for(int i=0;i<number_of_users_per_shard;i++)
             sum=sum+(coeff_vector[node_number][j]*ledger_array_temp[i][j]);
 
         }
+        ledger_array_encoded_temp[i]=sum;
         pb.val(ledger_array_encoded[i])=sum;
 
     }
 
-    
 
+
+    //filling up the encoded_blocks
+
+    for(int i=0;i<number_of_users_per_shard;i++)
+    {
+        int sum=0;
+        for(int j=0;j<number_of_chains;j++)
+        {
+            sum=sum+(coeff_vector[node_number][j]*blocks_array_temp[i][j]);
+
+        }
+        blocks_array_encoded_temp[i]=sum;
+        pb.val(blocks_array_encoded[i])=sum;
+
+    }
+
+    // addinng witness for the encoded result array
+
+    for(int i=0;i<number_of_users_per_shard;i++)
+    {
+        pb.val(result_array_encoded[i])=ledger_array_encoded_temp[i]-blocks_array_encoded_temp[i];
+    }
 
 
 
@@ -275,6 +399,36 @@ for(int i=0;i<number_of_users_per_shard;i++)
     }
 
     }
+
+
+
+
+
+      for(size_t j=0;j<number_of_users_per_shard;j++)
+    {
+        // compute_inner_product[i](pb,ledger_array[i],coefficients,dummy, "f");
+        // compute_inner_product[i].generate_r1cs_constraints();
+
+    int total=0;
+        for (size_t i = 0; i < number_of_chains; ++i)
+    {
+            total=total+blocks_array_temp[j][i]*coeff_vector[node_number][i];
+            if(i==number_of_chains-1)
+            {
+                pb.val(blocks_array_encoded[j])=total;
+            }
+            else
+            {
+                pb.val(SB[j][i])=total;
+            }
+               
+    }
+
+    }
+
+
+
+
 
     //pb.val(ledger_array_encoded[1])=45;
 
@@ -360,13 +514,16 @@ for(int i=0;i<number_of_users_per_shard;i++)
 //   cout << "Primary (public) input: " << pb.primary_input() << endl;
 //   cout << "Auxiliary (private) input: " << pb.auxiliary_input() << endl;
   cout << "Verification status: " << ans << endl;
+  cout<<"The verifier answer is "<<ans<<" "<<ans2<<"\n";
 
+  cout<<"Saving primary input\n";
+    stringstream primary_input;
+    primary_input<<pb.primary_input();
+    ofstream fileOut2;
+    fileOut2.open("verifier_primary_input");
+    fileOut2<<primary_input.rdbuf();
+    fileOut2.close();
 
-
-
-
-
-    cout<<"The verifier answer is "<<ans<<" "<<ans2<<"\n";
 
 
 

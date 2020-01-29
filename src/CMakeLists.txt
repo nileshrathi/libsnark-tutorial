@@ -133,6 +133,29 @@ target_include_directories(
 )
 
 
+
+add_executable(
+  receiver
+
+  receiver.cpp
+)
+target_link_libraries(
+  receiver
+
+  snark
+  gtest
+)
+target_include_directories(
+  receiver
+
+  PUBLIC
+  ${DEPENDS_DIR}/libsnark
+  ${DEPENDS_DIR}/libsnark/depends/libfqfft
+  ${DEPENDS_DIR}/libsnark/depends/libff
+  ${DEPENDS_DIR}/libsnark/depends/gtest
+)
+
+
 add_executable(
   test-knowledge-preimage
 
