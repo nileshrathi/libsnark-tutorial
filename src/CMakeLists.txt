@@ -135,6 +135,32 @@ target_include_directories(
 
 
 add_executable(
+  gendata
+
+  gendata.cpp
+)
+target_link_libraries(
+  gendata
+
+  snark
+  gtest
+)
+target_include_directories(
+  gendata
+
+  PUBLIC
+  ${DEPENDS_DIR}/libsnark
+  ${DEPENDS_DIR}/libsnark/depends/libfqfft
+  ${DEPENDS_DIR}/libsnark/depends/libff
+  ${DEPENDS_DIR}/libsnark/depends/gtest
+)
+
+
+
+
+
+
+add_executable(
   receiver
 
   receiver.cpp

@@ -63,8 +63,8 @@ int random_number(int min,int max)
 
 size_t number_of_chains=3;
 size_t number_of_nodes=9;
-size_t number_of_users_per_shard=9000;
-size_t node_number=1;
+size_t number_of_users_per_shard=2000;
+size_t node_number=8;
 
 
 #define ONE pb_variable<libff::Fr<ppT>>(0)
@@ -84,13 +84,16 @@ int main () {
     vector<pb_variable_array<field_T> > ledger_array;
     pb_variable_array<field_T> coefficients;
     pb_variable_array<field_T> ledger_array_encoded;
-    vector<pb_variable_array<field_T> > S;
+   
 
     vector<pb_variable_array<field_T> > blocks_array;
     pb_variable_array<field_T> blocks_array_encoded;
-    vector<pb_variable_array<field_T> > SB;
+    
 
     pb_variable_array<field_T> result_array_encoded;
+
+     vector<pb_variable_array<field_T> > S;
+     vector<pb_variable_array<field_T> > SB;
 
 
 
@@ -156,6 +159,9 @@ int main () {
     }
 
 
+    result_array_encoded.allocate(pb,number_of_users_per_shard,"encoded_results");
+
+
 
     //Allocating the coefficients to be equal to number of chains is system
     coefficients.allocate(pb,number_of_chains,"Coefficients for chain i");
@@ -166,6 +172,8 @@ int main () {
 
     //allocating encoded block
     blocks_array_encoded.allocate(pb,number_of_users_per_shard,"encoded ledger for node i");
+
+    //result_array_encoded.allocate(pb,number_of_users_per_shard,"encoded_results");
 
 
     S.resize(number_of_users_per_shard);
@@ -182,11 +190,12 @@ int main () {
 
     }
 
-    result_array_encoded.allocate(pb,number_of_users_per_shard,"encoded_results");
+    
+    size_t aux_input=((number_of_chains-1)*number_of_users_per_shard)+((number_of_chains-1)*number_of_users_per_shard)+(2*number_of_users_per_shard)+number_of_chains;
 
-
-    pb.set_input_sizes(pb.num_variables());
+    pb.set_input_sizes(pb.num_variables()-aux_input);
     cout<<"number of variables are "<<pb.num_variables()<<"\n";
+    cout<<"number of primary input = "<<pb.num_variables()-aux_input<<"\n";
     
 
     //GENERATING R1CS CONSTRAINTS
@@ -204,6 +213,7 @@ int main () {
                                     (i == ledger_array[j].size()-1 ? ledger_array_encoded[j] : S[j][i]) + (i == 0 ? 0 * ONE : -S[j][i-1])),
             "gtv");
     }
+
     }
 
 
@@ -282,8 +292,11 @@ for(int i=0;i<number_of_chains;i++)
 
 vector<int> ledger_array_encoded_temp;
 vector<int> blocks_array_encoded_temp;
+vector<int> result_array_encoded_temp;
 ledger_array_encoded_temp.resize(number_of_users_per_shard);
 blocks_array_encoded_temp.resize(number_of_users_per_shard);
+result_array_encoded_temp.resize(number_of_users_per_shard);
+
 
 
 //temporary replica of ledger_array so as to compute S, since I dont know how to use pb.val(ledger_array) directly.
@@ -373,6 +386,7 @@ for(int i=0;i<number_of_users_per_shard;i++)
 
     for(int i=0;i<number_of_users_per_shard;i++)
     {
+        result_array_encoded_temp[i]=ledger_array_encoded_temp[i]-blocks_array_encoded_temp[i];
         pb.val(result_array_encoded[i])=ledger_array_encoded_temp[i]-blocks_array_encoded_temp[i];
     }
 
@@ -517,10 +531,46 @@ for(int i=0;i<number_of_users_per_shard;i++)
   cout<<"The verifier answer is "<<ans<<" "<<ans2<<"\n";
 
   cout<<"Saving primary input\n";
-    stringstream primary_input;
-    primary_input<<pb.primary_input();
+
     ofstream fileOut2;
     fileOut2.open("verifier_primary_input");
+
+    for(int i=0;i<ledger_array_temp.size();i++)
+    {
+        for(int j=0;j<ledger_array_temp[i].size();j++)
+        {
+            fileOut2<<ledger_array_temp[i][j]<<"\n";
+        }
+    }
+
+     for(int i=0;i<blocks_array_temp.size();i++)
+    {
+        for(int j=0;j<blocks_array_temp[i].size();j++)
+        {
+            fileOut2<<blocks_array_temp[i][j]<<"\n";
+        }
+    }
+
+    for(int i=0;i<number_of_users_per_shard;i++)
+    {
+        fileOut2<<result_array_encoded_temp[i]<<"\n";
+    }
+
+
+    fileOut2.close();
+
+
+
+
+    cout<<"number of variables are "<<pb.num_variables()<<"\n";
+    cout<<"number of primary input = "<<pb.num_variables()-aux_input<<"\n";
+
+
+    cout<<"Saving primary input\n";
+    stringstream primary_input;
+    primary_input<<pb.primary_input();
+   // ofstream fileOut2;
+    fileOut2.open("verifier_primary_input_x");
     fileOut2<<primary_input.rdbuf();
     fileOut2.close();
 
