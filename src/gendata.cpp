@@ -56,6 +56,7 @@ int main (int argc, char* argv[]) {
     // Create protoboard
     
     number_of_chains=stoi(argv[1]);
+    number_of_users_per_shard=number_of_users_per_shard/number_of_chains;
     if(number_of_chains==0)
     {
         number_of_chains=1;
@@ -284,7 +285,7 @@ for(int i=0;i<number_of_users_per_shard;i++)
 
     std::ofstream outfile;
     outfile.open("test.txt", std::ios_base::app);
-    outfile <<number_of_chains<<" "<<constraint_system.num_constraints()<<" "<<proving_time<<" "<<verification_time<<" "<<online_verifiction_time<<" "<<keypair.pk.size_in_bits()<<" "<<keypair.vk.size_in_bits()<<" "<<proof.size_in_bits()<<" "<<ans<<"\n"; 
+    outfile <<number_of_chains<<" "<<number_of_users_per_shard<<" "<<constraint_system.num_constraints()<<" "<<proving_time<<" "<<verification_time<<" "<<online_verifiction_time<<" "<<keypair.pk.size_in_bits()<<" "<<keypair.vk.size_in_bits()<<" "<<proof.size_in_bits()<<" "<<ans<<"\n"; 
     outfile.close();
 
 
