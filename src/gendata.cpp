@@ -9,6 +9,8 @@
 
 #include <cassert>
 #include <memory>
+#include <chrono>
+
 
 #include <libsnark/gadgetlib1/gadget.hpp>
 
@@ -20,6 +22,7 @@
 using namespace libsnark;
 using namespace libff;
 #include<iostream>
+#include <fstream>
 using namespace std;
 
 
@@ -38,13 +41,13 @@ int random_number(int min,int max)
 
 /* Global Variables Defining properties of the system */
 
-size_t number_of_chains=45;
-size_t number_of_users_per_shard=90;
+size_t number_of_chains=1;
+size_t number_of_users_per_shard=500000;
 
 
 #define ONE pb_variable<libff::Fr<ppT>>(0)
 
-int main () {
+int main (int argc, char* argv[]) {
 
     typedef libff::Fr<ppT> field_T ;
     default_r1cs_gg_ppzksnark_pp::init_public_params();
@@ -52,7 +55,11 @@ int main () {
 
     // Create protoboard
     
-
+    number_of_chains=stoi(argv[1]);
+    if(number_of_chains==0)
+    {
+        number_of_chains=1;
+    }
     protoboard<field_T> pb;
   
   pb_variable<field_T> x;
@@ -229,12 +236,6 @@ for(int i=0;i<number_of_users_per_shard;i++)
 
 
 
-
-    
-
-    
-
-
     const r1cs_constraint_system<field_T> constraint_system = pb.get_constraint_system();
 
     libff::print_header("R1CS GG-ppzkSNARK Generator");
@@ -246,19 +247,25 @@ for(int i=0;i<number_of_users_per_shard;i++)
 
 
     libff::print_header("R1CS GG-ppzkSNARK Prover");
+    auto proving_time_start = std::chrono::high_resolution_clock::now();
     r1cs_gg_ppzksnark_proof<ppT> proof = r1cs_gg_ppzksnark_prover<ppT>(keypair.pk, pb.primary_input(), pb.auxiliary_input());
+    auto proving_time_end = std::chrono::high_resolution_clock::now();
     printf("\n"); libff::print_indent(); libff::print_mem("after prover");
 
 
 
 
     libff::print_header("R1CS GG-ppzkSNARK Verifier");
+    auto verification_time_start = std::chrono::high_resolution_clock::now();
     const bool ans = r1cs_gg_ppzksnark_verifier_strong_IC<ppT>(keypair.vk, pb.primary_input(), proof);
+    auto verification_time_end = std::chrono::high_resolution_clock::now();
     printf("\n"); libff::print_indent(); libff::print_mem("after verifier");
     printf("* The verification result is: %s\n", (ans ? "PASS" : "FAIL"));
 
     libff::print_header("R1CS GG-ppzkSNARK Online Verifier");
+    auto online_verification_time_start = std::chrono::high_resolution_clock::now();
     const bool ans2 = r1cs_gg_ppzksnark_online_verifier_strong_IC<ppT>(pvk, pb.primary_input(), proof);
+    auto online_verification_time_end = std::chrono::high_resolution_clock::now();
     assert(ans == ans2);
 
 
@@ -269,11 +276,16 @@ for(int i=0;i<number_of_users_per_shard;i++)
   cout << "Verification status: " << ans << endl;
 
 
-
-
-
-
     cout<<"The verifier answer is "<<ans<<" "<<ans2<<"\n";
+
+     auto proving_time = std::chrono::duration_cast<std::chrono::microseconds>( proving_time_end - proving_time_start ).count();
+     auto verification_time= std::chrono::duration_cast<std::chrono::microseconds>( verification_time_end - verification_time_start ).count();
+     auto online_verifiction_time=std::chrono::duration_cast<std::chrono::microseconds>( online_verification_time_end - online_verification_time_start ).count();
+
+    std::ofstream outfile;
+    outfile.open("test.txt", std::ios_base::app);
+    outfile <<number_of_chains<<" "<<constraint_system.num_constraints()<<" "<<proving_time<<" "<<verification_time<<" "<<online_verifiction_time<<" "<<keypair.pk.size_in_bits()<<" "<<keypair.vk.size_in_bits()<<" "<<proof.size_in_bits()<<" "<<ans<<"\n"; 
+    outfile.close();
 
 
 
