@@ -41,8 +41,8 @@ int random_number(int min,int max)
 
 /* Global Variables Defining properties of the system */
 
-size_t number_of_chains=1;
-size_t number_of_users_per_shard=500000;
+size_t number_of_chains=1000;
+size_t number_of_users_per_shard=50000;
 
 
 #define ONE pb_variable<libff::Fr<ppT>>(0)
@@ -55,8 +55,8 @@ int main (int argc, char* argv[]) {
 
     // Create protoboard
     
-    number_of_chains=stoi(argv[1]);
-    number_of_users_per_shard=number_of_users_per_shard/number_of_chains;
+   // number_of_chains=stoi(argv[1]);
+    //number_of_users_per_shard=number_of_users_per_shard/number_of_chains;
     if(number_of_chains==0)
     {
         number_of_chains=1;
